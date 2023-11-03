@@ -79,7 +79,7 @@ static void set_or_clear_slab_in_page(void *addr, unsigned long size,
         }
 }
 
-static void *alloc_slab_memory(unsigned long size)
+static void *z(unsigned long size)
 {
         void *addr;
         int order;
@@ -138,9 +138,19 @@ static void choose_new_current_slab(struct slab_pointer *pool, int order)
 {
         /* LAB 2 TODO 2 BEGIN */
         /* Hint: Choose a partial slab to be a new current slab. */
-        /* BLANK BEGIN */
+    struct slab_header *slab;
+    struct list_head *partial_slab_list = &(pool->partial_slab_list);
 
-        /* BLANK END */
+    /* If there is no partial slab available, allocate a new one */
+    if (list_empty(partial_slab_list)) {
+        pool->current_slab = init_slab_cache(order, SIZE_OF_ONE_SLAB);
+        return;
+    }
+
+    /* Otherwise, choose the first partial slab from the list */
+    slab = list_first_entry(partial_slab_list, struct slab_header, node);
+    pool->current_slab = slab;
+    list_del(&slab->node);  // Remove it from partial slab list
         /* LAB 2 TODO 2 END */
 }
 
@@ -168,9 +178,19 @@ static void *alloc_in_slab_impl(int order)
          * Hint: Find a free slot from the free list of current slab.
          * If current slab is full, choose a new slab as the current one.
          */
-        /* BLANK BEGIN */
+    /* No free slots available in the current slab */
+        if (current_slab->current_free_cnt == 0) {
+                choose_new_current_slab(&slab_pool[order], order);
+                current_slab = slab_pool[order].current_slab;
+                if (current_slab == NULL) {
+                unlock(&slabs_locks[order]);
+                return NULL;
+                }
+        }
 
-        /* BLANK END */
+        free_list = (struct slab_slot_list *)current_slab->free_list_head;
+        current_slab->free_list_head = free_list->next_free;
+        current_slab->current_free_cnt--;
         /* LAB 2 TODO 2 END */
 
         unlock(&slabs_locks[order]);
@@ -295,9 +315,9 @@ void free_in_slab(void *addr)
         /*
          * Hint: Free an allocated slot and put it back to the free list.
          */
-        /* BLANK BEGIN */
-
-        /* BLANK END */
+        slot->next_free = slab->free_list_head;
+        slab->free_list_head = (void *)slot;
+        slab->current_free_cnt++;
         /* LAB 2 TODO 2 END */
 
         try_return_slab_to_buddy(slab, order);
