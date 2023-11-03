@@ -55,7 +55,7 @@ static struct page *split_chunk(struct phys_mem_pool *pool, int order,
     if (chunk->order > order) {
         int buddy_order = chunk->order - 1;
 
-        // Split the chunk in two buddies
+        // Split the chunk into two buddies
         struct page *buddy_chunk = get_buddy_chunk(pool, chunk);
         buddy_chunk->order = buddy_order;
 
@@ -65,7 +65,7 @@ static struct page *split_chunk(struct phys_mem_pool *pool, int order,
         // If buddy_chunk is not already allocated, add it to the free list
         if (!buddy_chunk->allocated) {
             struct list_head *free_list = &(pool->free_lists[buddy_order].free_list);
-            list_add(&(buddy_chunk->list), free_list);
+            list_add(&(buddy_chunk->node), free_list);  // Use node instead of list
             pool->free_lists[buddy_order].nr_free++;
         }
     }
@@ -93,7 +93,7 @@ static struct page *merge_chunk(struct phys_mem_pool *pool, struct page *chunk)
         if (buddy_chunk->allocated || buddy_chunk->order != chunk->order) break;
 
         // Remove buddy from free list
-        list_del(&buddy_chunk->list);
+        list_del(&buddy_chunk->node);
         pool->free_lists[chunk->order].nr_free--;
 
         // Determine which chunk is lower in memory
@@ -178,8 +178,8 @@ struct page *buddy_get_pages(struct phys_mem_pool *pool, int order)
 
                 if (!list_empty(free_list)) {
                         // Remove the chunk from the free list
-                        page = LIST_ENTRY(free_list->next, struct page, list);
-                        list_del(&page->list);
+                        page = container_of(free_list->next, struct page, list);
+                        list_del(&page->node);
                         pool->free_lists[cur_order].nr_free--;
 
                         // If necessary, split the chunk
@@ -216,8 +216,8 @@ void buddy_free_pages(struct phys_mem_pool *pool, struct page *page)
         struct page *merged_page = merge_chunk(pool, page);
 
         // Add the merged page to the free list
-        free_list = &(pool->free_lists[merged_page->order].free_list);
-        list_add(&(merged_page->list), free_list);
+        free_list = &(pool->free_lists[order]free_list);
+        list_add(&(merged_page->node), free_list);
         pool->free_lists[merged_page->order].nr_free++;
         /* LAB 2 TODO 1 END */
 
