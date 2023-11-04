@@ -168,7 +168,6 @@ void lab2_test_page_table(void)
                 lab_assert(ret == 0);
                 ret = query_in_pgtbl(pgtbl, 0x1001000, &pa, &pte);
                 lab_assert(ret == -ENOMAPPING);
-                printk("retref : %d \n", ret);
 
                 free_page_table(pgtbl);
                 lab_check(ok, "Map & unmap one page");
@@ -188,34 +187,24 @@ void lab2_test_page_table(void)
                 ret = map_range_in_pgtbl(
                         pgtbl, 0x1001000 + len, 0x1000 + len, len, flags, NULL);
                 lab_assert(ret == 0);
-                // printk("ret1 : %d \n", ret);
+
                 for (int i = 0; i < nr_pages * 2; i++) {
                         ret = query_in_pgtbl(
                                 pgtbl, 0x1001050 + i * PAGE_SIZE, &pa, &pte);
-                        if (i==1) {
-                        debug_query_in_pgtbl(pgtbl, 0x1001050 + i * PAGE_SIZE, &pa, &pte);
-                        }
-
-
-
                         lab_assert(ret == 0 && pa == 0x1050 + i * PAGE_SIZE);
-                        printk("ret5 : %d %d\n", ret,pa == 0x1050 + i * PAGE_SIZE);
                         lab_assert(pte && pte->l3_page.is_valid
                                    && pte->l3_page.is_page);
-                        printk("ret6 : %d %d %d\n", ret,pte->l3_page.is_valid,pte->l3_page.is_page);                                   
                 }
 
                 ret = unmap_range_in_pgtbl(pgtbl, 0x1001000, len, NULL);
                 lab_assert(ret == 0);
-                // printk("ret2 : %d \n", ret);
                 ret = unmap_range_in_pgtbl(pgtbl, 0x1001000 + len, len, NULL);
                 lab_assert(ret == 0);
-                // printk("ret3 : %d \n", ret);
+
                 for (int i = 0; i < nr_pages * 2; i++) {
                         ret = query_in_pgtbl(
                                 pgtbl, 0x1001050 + i * PAGE_SIZE, &pa, &pte);
                         lab_assert(ret == -ENOMAPPING);
-                        // printk("ret4 : %d \n", ret);
                 }
 
                 free_page_table(pgtbl);

@@ -213,8 +213,6 @@ struct page *buddy_get_pages(struct phys_mem_pool *pool, int order)
         struct list_head *free_list;
         struct page *page = NULL;
 
-        get_free_mem_size_from_buddy(pool);
-
         if (unlikely(order >= BUDDY_MAX_ORDER)) {
                 kwarn("ChCore does not support allocating such too large "
                       "contious physical memory\n");

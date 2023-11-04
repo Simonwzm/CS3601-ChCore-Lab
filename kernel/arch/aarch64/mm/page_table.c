@@ -304,6 +304,7 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
     if (!pgtbl || !pa || ! entry)
         return -EINVAL;
 
+
     ptp_t *cur_ptp = (ptp_t *)pgtbl;
     u32 level;
     for (level = L0; level <= L3; ++level) {
@@ -324,7 +325,7 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
         cur_ptp = next_ptp;
     }
 
-    return -ENOMAPPING;
+//     return -ENOMAPPING;
         /* LAB 2 TODO 4 END */
         return 0;
 }
@@ -369,18 +370,23 @@ static int map_range_in_pgtbl_common(void *pgtbl, vaddr_t va, paddr_t pa, size_t
             cur_ptp = next_ptp;
         }
 
-        if (!cur_entry)
+
+         if (!cur_entry)
             return -ENOMAPPING;  // Failed to find or allocate entry
 
-        // Set the common bits in the page table entry
-        cur_entry->l3_page.is_valid = 1;
-        cur_entry->l3_page.is_page = 1; // Marking as a terminal entry
+        // Set the properties for L3 page table entry
+        cur_entry->pte = 0;
+        cur_entry->l3_page.is_page = 1;          // Set as a valid L3 page entry
+        cur_entry->l3_page.is_valid = 1;         // Set as a valid entry
+        cur_entry->l3_page.pfn = cur_pa >> PAGE_SHIFT; // Set the physical page frame number
+        
+        // Set flags in the page table entry
         ret = set_pte_flags(cur_entry, flags, kind);
         if (ret < 0)
             return ret;  // Error occurred
     }
-        /* LAB 2 TODO 4 END */
-        return 0;
+
+    return 0;
 }
 
 /* Map vm range in kernel */
@@ -451,9 +457,38 @@ int unmap_range_in_pgtbl(void *pgtbl, vaddr_t va, size_t len, long *rss)
          * this function is called.
          * Return 0 on success.
          */
-        /* BLANK BEGIN */
+    BUG_ON(len % PAGE_SIZE);  // Ensure length is a multiple of page size
+    BUG_ON(va & PAGE_MASK);   // Ensure virtual address is page-aligned
 
-        /* BLANK END */
+    ptp_t *cur_ptp = (ptp_t *)pgtbl;
+    pte_t *cur_entry = NULL;
+    ptp_t *next_ptp = NULL;
+    pte_t *pte = NULL;
+    int ret;
+
+    for (u64 offset = 0; offset < len; offset += PAGE_SIZE) {
+        vaddr_t cur_va = va + offset;
+        
+        // Walk through the page tables
+        for (u32 level = L0; level <= L3; level++) {
+            ret = get_next_ptp(cur_ptp, level, cur_va, &next_ptp, &pte, false, rss);
+            if (ret < 0)
+                return ret;  // Error occurred
+            
+            if (ret == BLOCK_PTP || level == L3) {
+                // We've reached a terminal entry (L0/L1 block or L3 page)
+                cur_entry = pte;
+                break;
+            }
+            cur_ptp = next_ptp;
+        }
+
+        if (!cur_entry)
+            return -ENOMAPPING;  // No mapping exists for this address
+
+        // Invalidate the PTE
+        cur_entry->pte = 0;
+    }
         /* LAB 2 TODO 4 END */
 
         dsb(ishst);
@@ -471,9 +506,38 @@ int mprotect_in_pgtbl(void *pgtbl, vaddr_t va, size_t len, vmr_prop_t flags)
          * The `kind` argument of `set_pte_flags` should always be `USER_PTE`.
          * Return 0 on success.
          */
-        /* BLANK BEGIN */
+    BUG_ON(len % PAGE_SIZE);  // Ensure length is a multiple of page size
+    BUG_ON(va & PAGE_MASK);   // Ensure virtual address is page-aligned
 
-        /* BLANK END */
+    ptp_t *cur_ptp = (ptp_t *)pgtbl;
+    pte_t *cur_entry = NULL;
+    ptp_t *next_ptp = NULL;
+    pte_t *pte = NULL;
+    int ret;
+
+    for (u64 offset = 0; offset < len; offset += PAGE_SIZE) {
+        vaddr_t cur_va = va + offset;
+
+        // Walk through the page tables
+        for (u32 level = L0; level <= L3; level++) {
+            ret = get_next_ptp(cur_ptp, level, cur_va, &next_ptp, &pte, false, NULL);
+            if (ret < 0)
+                return ret;  // Error occurred
+
+            if (ret == BLOCK_PTP || level == L3) {
+                // We've reached a terminal entry (L0/L1 block or L3 page)
+                cur_entry = pte;
+                break;
+            }
+            cur_ptp = next_ptp;
+        }
+
+        if (!cur_entry)
+            return -ENOMAPPING;  // No mapping exists for this address
+
+        // Modify the permissions using set_pte_flags
+        set_pte_flags(cur_entry, flags, USER_PTE);
+    }
         /* LAB 2 TODO 4 END */
         return 0;
 }
