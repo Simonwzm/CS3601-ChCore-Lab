@@ -178,7 +178,7 @@ struct page *buddy_get_pages(struct phys_mem_pool *pool, int order)
 
                 if (!list_empty(free_list)) {
                         // Remove the chunk from the free list
-                        page = container_of(free_list->next, struct page, list);
+                        page = container_of(free_list->next, struct page, node);
                         list_del(&page->node);
                         pool->free_lists[cur_order].nr_free--;
 
@@ -216,7 +216,7 @@ void buddy_free_pages(struct phys_mem_pool *pool, struct page *page)
         struct page *merged_page = merge_chunk(pool, page);
 
         // Add the merged page to the free list
-        free_list = &(pool->free_lists[order]free_list);
+        free_list = &(pool->free_lists[order].free_list);
         list_add(&(merged_page->node), free_list);
         pool->free_lists[merged_page->order].nr_free++;
         /* LAB 2 TODO 1 END */
