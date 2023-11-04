@@ -149,7 +149,7 @@ static void choose_new_current_slab(struct slab_pointer *pool, int order)
 
     /* Otherwise, choose the first partial slab from the list */
 //     slab = list_first_entry(partial_slab_list, struct slab_header, node);
-        kwarn("in choose_new_current_slab");
+        // kwarn("in choose_new_current_slab");
     slab = container_of(partial_slab_list->next, struct slab_header, node);
 
     pool->current_slab = slab;
@@ -164,7 +164,7 @@ static void *alloc_in_slab_impl(int order)
         void *next_slot;
 
         lock(&slabs_locks[order]);
-        kwarn("in alloc_in_slab_impl");
+        // kwarn("in alloc_in_slab_impl");
         
         current_slab = slab_pool[order].current_slab;
         /* When serving the first allocation request. */
