@@ -65,7 +65,6 @@ static int set_pte_flags(pte_t *entry, vmr_prop_t flags, int kind)
 {
 
         BUG_ON(kind != USER_PTE && kind != KERNEL_PTE);
-
         /*
          * Current access permission (AP) setting:
          * Mapped pages are always readable (No considering XOM).
@@ -355,33 +354,40 @@ static int map_range_in_pgtbl_common(void *pgtbl, vaddr_t va, paddr_t pa, size_t
     for (u64 offset = 0; offset < len; offset += PAGE_SIZE) {
         vaddr_t cur_va = va + offset;
         paddr_t cur_pa = pa + offset;
+        pte = NULL;
         
         // Walk through the page tables
-        for (u32 level = L0; level <= L3; level++) {
+        for (u32 level = L0; level < L3; level++) {
             ret = get_next_ptp(cur_ptp, level, cur_va, &next_ptp, &pte, true, rss);
             if (ret < 0)
                 return ret;  // Error occurred
             
-            if (ret == BLOCK_PTP || level == L3) {
-                // We've reached a terminal entry (L0/L1 block or L3 page)
-                cur_entry = pte;
-                break;
-            }
+        //     if (ret == BLOCK_PTP || level == L3) {
+        //         // We've reached a terminal entry (L0/L1 block or L3 page)
+        //         cur_entry = pte;
+        //         break;
+        //     }
             cur_ptp = next_ptp;
         }
 
 
-         if (!cur_entry)
-            return -ENOMAPPING;  // Failed to find or allocate entry
+        //  if (!cur_entry)
+        //     return -ENOMAPPING;  // Failed to find or allocate entry
 
         // Set the properties for L3 page table entry
+        u32 index = GET_L3_INDEX(va);
+        cur_entry = &(cur_ptp->ent[index]);
+
         cur_entry->pte = 0;
         cur_entry->l3_page.is_page = 1;          // Set as a valid L3 page entry
         cur_entry->l3_page.is_valid = 1;         // Set as a valid entry
         cur_entry->l3_page.pfn = cur_pa >> PAGE_SHIFT; // Set the physical page frame number
-        
+        // printk("%p \n", cur_entry);
+        // printk("%d 2 \n" , cur_entry->pte);
         // Set flags in the page table entry
         ret = set_pte_flags(cur_entry, flags, kind);
+        // printk("%d 2 \n" , cur_entry->pte);
+
         if (ret < 0)
             return ret;  // Error occurred
     }

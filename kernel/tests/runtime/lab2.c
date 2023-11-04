@@ -157,18 +157,25 @@ void lab2_test_page_table(void)
                         pgtbl, 0x1001000, 0x1000, PAGE_SIZE, flags, NULL);
                 lab_assert(ret == 0);
 
+
                 ret = query_in_pgtbl(pgtbl, 0x1001000, &pa, &pte);
                 lab_assert(ret == 0 && pa == 0x1000);
+
+
                 lab_assert(pte && pte->l3_page.is_valid && pte->l3_page.is_page
                            && pte->l3_page.SH == INNER_SHAREABLE);
+                printk("ret2 %d\n" , pte->l3_page.SH == INNER_SHAREABLE);
                 ret = query_in_pgtbl(pgtbl, 0x1001050, &pa, &pte);
                 lab_assert(ret == 0 && pa == 0x1050);
+                printk("ret1 %d\n" , pte->l3_page.is_valid);
 
                 ret = unmap_range_in_pgtbl(pgtbl, 0x1001000, PAGE_SIZE, NULL);
                 lab_assert(ret == 0);
+                printk("ret2 %d\n" , ret);
+
                 ret = query_in_pgtbl(pgtbl, 0x1001000, &pa, &pte);
                 lab_assert(ret == -ENOMAPPING);
-
+                printk("ret1 %d\n" , ret);
                 free_page_table(pgtbl);
                 lab_check(ok, "Map & unmap one page");
         }
