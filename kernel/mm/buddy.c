@@ -69,7 +69,7 @@ static struct page *split_chunk(struct phys_mem_pool *pool, int order,
             pool->free_lists[buddy_order].nr_free++;
         }
     }
-
+            kwarn("single split ok");
     return chunk;
 
         /* LAB 2 TODO 1 END */
@@ -85,23 +85,43 @@ static struct page *merge_chunk(struct phys_mem_pool *pool, struct page *chunk)
          * if possible.
          */
     struct page *buddy_chunk, *merged_chunk = chunk;
+    int preorder = chunk->order ;
 
     while (chunk->order < BUDDY_MAX_ORDER - 1) {
+        // kinfo("temp sign 1 \n");
         buddy_chunk = get_buddy_chunk(pool, chunk);
+        // if (chunk->order == 4) {
+                // kinfo("order 4 reached");
+                // kinfo("buddy allocated: %d \n", buddy_chunk->allocated);
+        // }
 
+
+        
         // If buddy is not free or of different order, break
-        if (buddy_chunk->allocated || buddy_chunk->order != chunk->order) break;
+        if (buddy_chunk == NULL || buddy_chunk->allocated || buddy_chunk->order != chunk->order) break;
 
         // Remove buddy from free list
+        
         list_del(&buddy_chunk->node);
+        // kinfo("temp sign 2 \n");
         pool->free_lists[chunk->order].nr_free--;
+
 
         // Determine which chunk is lower in memory
         merged_chunk = (chunk < buddy_chunk) ? chunk : buddy_chunk;
 
         // Increase order and continue trying to merge
         merged_chunk->order++;
+        chunk = merged_chunk;
     }
+            if (chunk->order == 4) {
+                // kinfo("order 4 produced");
+        }
+    
+        if (merged_chunk->order == 14) {
+                kinfo("merge ok from %d to %d \n", preorder, merged_chunk->order);      
+        }
+
 
     return merged_chunk;
         /* LAB 2 TODO 1 END */
@@ -124,6 +144,7 @@ void init_buddy(struct phys_mem_pool *pool, struct page *start_page,
         BUG_ON(lock_init(&pool->buddy_lock) != 0);
 
         /* Init the physical memory pool. */
+        kinfo("max order is %d \n", BUDDY_MAX_ORDER);
         pool->pool_start_addr = start_addr;
         pool->page_metadata = start_page;
         pool->pool_mem_size = page_num * BUDDY_PAGE_SIZE;
@@ -152,6 +173,8 @@ void init_buddy(struct phys_mem_pool *pool, struct page *start_page,
                 page = start_page + page_idx;
                 buddy_free_pages(pool, page);
         }
+        kwarn("init ok \n");
+        get_free_mem_size_from_buddy(pool);
 }
 
 struct page *buddy_get_pages(struct phys_mem_pool *pool, int order)
@@ -210,17 +233,21 @@ void buddy_free_pages(struct phys_mem_pool *pool, struct page *page)
          */
     // Reset page state
         page->allocated = 0;
-        order = page->order;
+        // order = page->order;
 
         // Try to merge the page with its buddy
         struct page *merged_page = merge_chunk(pool, page);
 
         // Add the merged page to the free list
-        free_list = &(pool->free_lists[order].free_list);
+        // kwarn("1 \n");
+        free_list = &(pool->free_lists[merged_page->order].free_list);
+        // kwarn("2 \n");
         list_add(&(merged_page->node), free_list);
+        // kwarn("3 \n");
         pool->free_lists[merged_page->order].nr_free++;
+        // kwarn("4 \n");
         /* LAB 2 TODO 1 END */
-
+        //     kinfo("buddy free a chunk ok %d \n", merged_page->order);
         unlock(&pool->buddy_lock);
 }
 
