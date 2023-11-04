@@ -301,9 +301,30 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
          * return the pa and pte until a L0/L1 block or page, return
          * `-ENOMAPPING` if the va is not mapped.
          */
-        /* BLANK BEGIN */
+    if (!pgtbl || !pa || ! entry)
+        return -EINVAL;
 
-        /* BLANK END */
+    ptp_t *cur_ptp = (ptp_t *)pgtbl;
+    u32 level;
+    for (level = L0; level <= L3; ++level) {
+        ptp_t *next_ptp;
+        pte_t *cur_entry;
+        int res = get_next_ptp(cur_ptp, level, va, &next_ptp, &cur_entry, false, NULL);
+        if (res == -ENOMAPPING)
+            return -ENOMAPPING;
+
+        if (res == BLOCK_PTP || level == L3) {
+            // If a block entry is found or we're at the last level, return the PA and pte.
+            *pa = GET_PADDR_IN_PTE(cur_entry) + (va & ((1 << PAGE_SHIFT) - 1));
+            *entry = cur_entry;
+            return 0;
+        }
+
+        // If a table entry is found, continue to the next level.
+        cur_ptp = next_ptp;
+    }
+
+    return -ENOMAPPING;
         /* LAB 2 TODO 4 END */
         return 0;
 }
@@ -320,9 +341,44 @@ static int map_range_in_pgtbl_common(void *pgtbl, vaddr_t va, paddr_t pa, size_t
          * Since we are adding new mappings, there is no need to flush TLBs.
          * Return 0 on success.
          */
-        /* BLANK BEGIN */
+    BUG_ON(len % PAGE_SIZE);  // Ensure length is a multiple of page size
+    BUG_ON(va & PAGE_MASK);   // Ensure virtual address is page-aligned
+    BUG_ON(pa & PAGE_MASK);   // Ensure physical address is page-aligned
 
-        /* BLANK END */
+    ptp_t *cur_ptp = (ptp_t *)pgtbl;
+    pte_t *cur_entry = NULL;
+    ptp_t *next_ptp = NULL;
+    pte_t *pte = NULL;
+    int ret;
+
+    for (u64 offset = 0; offset < len; offset += PAGE_SIZE) {
+        vaddr_t cur_va = va + offset;
+        paddr_t cur_pa = pa + offset;
+        
+        // Walk through the page tables
+        for (u32 level = L0; level <= L3; level++) {
+            ret = get_next_ptp(cur_ptp, level, cur_va, &next_ptp, &pte, true, rss);
+            if (ret < 0)
+                return ret;  // Error occurred
+            
+            if (ret == BLOCK_PTP || level == L3) {
+                // We've reached a terminal entry (L0/L1 block or L3 page)
+                cur_entry = pte;
+                break;
+            }
+            cur_ptp = next_ptp;
+        }
+
+        if (!cur_entry)
+            return -ENOMAPPING;  // Failed to find or allocate entry
+
+        // Set the common bits in the page table entry
+        cur_entry->l3_page.is_valid = 1;
+        cur_entry->l3_page.is_page = 1; // Marking as a terminal entry
+        ret = set_pte_flags(cur_entry, flags, kind);
+        if (ret < 0)
+            return ret;  // Error occurred
+    }
         /* LAB 2 TODO 4 END */
         return 0;
 }
@@ -464,7 +520,7 @@ void update_pte(pte_t *dest, unsigned int level, struct common_pte_t *src)
                  * by hardware, so on these platforms we ignored them.
                  */
                 dest->l3_page.AF = src->access;
-                dest->l3_page.DBM = src->dirty;
+                dest->lf3_page.DBM = src->dirty;
 #endif
                 break;
         default:
