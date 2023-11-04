@@ -33,10 +33,10 @@ static struct page *get_buddy_chunk(struct phys_mem_pool *pool,
                            ^ (1UL << (order + BUDDY_PAGE_SIZE_ORDER));
 
         /* Check whether the buddy_chunk_addr belongs to pool. */
-        if ((buddy_chunk_addr < pool->pool_start_addr)
-            || ((buddy_chunk_addr + (1 << order) * BUDDY_PAGE_SIZE)
-                > (pool->pool_start_addr + pool->pool_mem_size))) {
-                return NULL;
+        if (buddy_chunk_addr < pool->pool_start_addr) {kinfo("error1 \n");return NULL;}
+        if ((buddy_chunk_addr + (1 << order) * BUDDY_PAGE_SIZE)
+                > (pool->pool_start_addr + pool->pool_mem_size)) {
+                kinfo("error2 \n");return NULL;
         }
 
         return virt_to_page((void *)buddy_chunk_addr);
@@ -87,7 +87,7 @@ static struct page *merge_chunk(struct phys_mem_pool *pool, struct page *chunk)
     struct page *buddy_chunk, *merged_chunk = chunk;
     int preorder = chunk->order ;
 
-    while (chunk->order < BUDDY_MAX_ORDER - 1) {
+    while (chunk->order < BUDDY_MAX_ORDER-1 ) {
         // kinfo("temp sign 1 \n");
         buddy_chunk = get_buddy_chunk(pool, chunk);
         // if (chunk->order == 4) {
@@ -98,6 +98,10 @@ static struct page *merge_chunk(struct phys_mem_pool *pool, struct page *chunk)
 
         
         // If buddy is not free or of different order, break
+        // if (buddy_chunk == NULL && chunk->order == 4) {
+        //         get_free_mem_size_from_buddy(pool);
+        // }
+
         if (buddy_chunk == NULL || buddy_chunk->allocated || buddy_chunk->order != chunk->order) break;
 
         // Remove buddy from free list
@@ -150,6 +154,7 @@ void init_buddy(struct phys_mem_pool *pool, struct page *start_page,
         pool->pool_mem_size = page_num * BUDDY_PAGE_SIZE;
         /* This field is for unit test only. */
         pool->pool_phys_page_num = page_num;
+        kinfo("num of pages: %d \n", page_num);
 
         /* Init the free lists */
         for (order = 0; order < BUDDY_MAX_ORDER; ++order) {
@@ -174,7 +179,7 @@ void init_buddy(struct phys_mem_pool *pool, struct page *start_page,
                 buddy_free_pages(pool, page);
         }
         kwarn("init ok \n");
-        get_free_mem_size_from_buddy(pool);
+        // get_free_mem_size_from_buddy(pool);
 }
 
 struct page *buddy_get_pages(struct phys_mem_pool *pool, int order)
@@ -305,7 +310,7 @@ unsigned long get_free_mem_size_from_buddy(struct phys_mem_pool *pool)
                 total_size += list->nr_free * current_order_size;
 
                 /* debug : print info about current order */
-                kdebug("buddy memory chunk order: %d, size: 0x%lx, num: %d\n",
+                kinfo("buddy memory chunk order: %d, size: 0x%lx, num: %d\n",
                        order,
                        current_order_size,
                        list->nr_free);
