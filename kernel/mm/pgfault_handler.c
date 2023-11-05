@@ -264,7 +264,7 @@ int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr)
                 if (perm & VMR_EXEC) {
                         arch_flush_cache(fault_addr, PAGE_SIZE, SYNC_IDCACHE);
                 }
-
+                // debug_query_in_pgtbl(vmspace->pgtbl, fault_addr, pa, NULL);
                 break;
         }
         case PMO_FILE: {

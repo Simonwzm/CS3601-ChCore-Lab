@@ -472,7 +472,12 @@ struct vmregion *find_vmr_for_va(struct vmspace *vmspace, vaddr_t addr)
         /* Hint: Find the corresponding vmr for @addr in @vmspace */
 
     struct rb_node *result_node = rb_search(&vmspace->vmr_tree, &addr, compare_vaddr_with_vmr_node);
-    
+    if (result_node) {
+            printk("FOUND %p \n", addr);
+    }
+    else {
+            printk("Not FOUND %p \n", addr);
+    }
 
     // Return NULL if no matching vmregion is found, otherwise return the vmregion
     return result_node ? rb_entry(result_node, struct vmregion, tree_node) : NULL;

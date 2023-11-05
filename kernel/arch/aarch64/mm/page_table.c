@@ -304,23 +304,38 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
          * return the pa and pte until a L0/L1 block or page, return
          * `-ENOMAPPING` if the va is not mapped.
          */
-    if (!pgtbl || !pa || ! entry)
-        return -EINVAL;
+//     if (!pgtbl || !pa || ! entry)
+//         return -EINVAL;
 
 
     ptp_t *cur_ptp = (ptp_t *)pgtbl;
     u32 level;
+    if (va >= 0x600000000000) {
+            kwarn("va >= 0x6... in query_mem\n");
+    }
     for (level = L0; level <= L3; ++level) {
         ptp_t *next_ptp;
         pte_t *cur_entry;
         int res = get_next_ptp(cur_ptp, level, va, &next_ptp, &cur_entry, false, NULL);
-        if (res == -ENOMAPPING)
-            return -ENOMAPPING;
+        if (res == -ENOMAPPING) {
+                // if (va== (vaddr_t)0x76f907502a18) {
+                if (va>=0x600000000000) {
+
+                        kwarn("level: %d , va: %p \n", level, va);
+                        // return 0;
+                        // BUG_ON(1);                      
+                }
+
+                return -ENOMAPPING;
+
+
+
+        }
 
         if (res == BLOCK_PTP || level == L3) {
             // If a block entry is found or we're at the last level, return the PA and pte.
-        //     *pa = GET_PADDR_IN_PTE(cur_entry) + (va & ((1 << PAGE_SHIFT) - 1));
-            *pa = virt_to_phys(next_ptp) + GET_VA_OFFSET_L3(va);
+            *pa = GET_PADDR_IN_PTE(cur_entry) + (va & ((1 << PAGE_SHIFT) - 1));
+        //     *pa = virt_to_phys(next_ptp) + GET_VA_OFFSET_L3(va);
             *entry = cur_entry;
             return 0;
         }
@@ -352,6 +367,9 @@ static int map_range_in_pgtbl_common(void *pgtbl, vaddr_t va, paddr_t pa, size_t
 
 
     int ret;
+    if (va >= 0x600000000000) {
+            kwarn("va>=0x6... in map_mem \n");
+    }
 
     for (u64 offset = 0; offset < len; offset += PAGE_SIZE) {
         vaddr_t cur_va = va + offset;

@@ -49,6 +49,7 @@ void do_page_fault(u64 esr, u64 fault_ins_addr, int type, u64 *fix_addr)
         int ret;
 
         fault_addr = get_fault_addr();
+        if (fault_addr == 0x0) {printk("ZERO ADDR FETCHED \n");}
         fsc = GET_ESR_EL1_FSC(esr);
         switch (fsc) {
         case DFSC_TRANS_FAULT_L0:
