@@ -195,86 +195,6 @@ static int get_next_ptp(ptp_t *cur_ptp, u32 level, vaddr_t va, ptp_t **next_ptp,
                 return BLOCK_PTP;
 }
 
-static int debug_get_next_ptp(ptp_t *cur_ptp, u32 level, vaddr_t va, ptp_t **next_ptp,
-                        pte_t **pte, bool alloc, long *rss)
-{
-        u32 index = 0;
-        pte_t *entry;
-
-        if (cur_ptp == NULL)
-                return -ENOMAPPING;
-
-        switch (level) {
-        case L0:
-                index = GET_L0_INDEX(va);
-                break;
-        case L1:
-                index = GET_L1_INDEX(va);
-                break;
-        case L2:
-                index = GET_L2_INDEX(va);
-                break;
-        case L3:
-                index = GET_L3_INDEX(va);
-                break;
-        default:
-                BUG("unexpected level\n");
-                return -EINVAL;
-        }
-
-        entry = &(cur_ptp->ent[index]);
-        if ((va==0x1002050 ||va==0x1001050)&& level==L3) {
-                printk("get 1002050 L3-index %d \n", index);
-        }
-
-        if (IS_PTE_INVALID(entry->pte)) {
-                if (alloc == false) {
-                        return -ENOMAPPING;
-                } else {
-                        /* alloc a new page table page */
-                        ptp_t *new_ptp;
-                        paddr_t new_ptp_paddr;
-                        pte_t new_pte_val;
-
-                        /* alloc a single physical page as a new page table page
-                         */
-                        new_ptp = get_pages(0);
-                        if (new_ptp == NULL)
-                                return -ENOMEM;
-                        memset((void *)new_ptp, 0, PAGE_SIZE);
-                        if (rss)
-                                *rss += PAGE_SIZE;
-
-                        new_ptp_paddr = virt_to_phys((vaddr_t)new_ptp);
-
-                        new_pte_val.pte = 0;
-                        new_pte_val.table.is_valid = 1;
-                        new_pte_val.table.is_table = 1;
-                        new_pte_val.table.next_table_addr = new_ptp_paddr
-                                                            >> PAGE_SHIFT;
-
-                        /* same effect as: cur_ptp->ent[index] = new_pte_val; */
-                        entry->pte = new_pte_val.pte;
-                }
-        }
-
-        *next_ptp = (ptp_t *)GET_NEXT_PTP(entry);
-        *pte = entry;
-        
-
-        if (va==0x1001050 && level==L3) {
-                // ddquery_in_pgtbl( pgtbl, 0x1002050 , &pa, &pte);     
-                printk("TEST %p  \n",cur_ptp->ent[index+1] );   
-        }
-        if (1)
-            printk("d,p pair visited : %d , %p \n", level, *next_ptp);
-
-
-        if (IS_PTE_TABLE(entry->pte))
-                return NORMAL_PTP;
-        else
-                return BLOCK_PTP;
-}
 
 
 int debug_query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
@@ -404,55 +324,8 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
             *entry = cur_entry;
             return 0;
         }
-
-
-
-
-        // If a table entry is found, continue to the next level.
         cur_ptp = next_ptp;
     }
-
-//     return -ENOMAPPING;
-        /* LAB 2 TODO 4 END */
-        return 0;
-}
-
-
-int ddquery_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
-{
-        /* LAB 2 TODO 4 BEGIN */
-        /*
-         * Hint: Walk through each level of page table using `get_next_ptp`,
-         * return the pa and pte until a L0/L1 block or page, return
-         * `-ENOMAPPING` if the va is not mapped.
-         */
-    if (!pgtbl || !pa || ! entry)
-        return -EINVAL;
-
-
-    ptp_t *cur_ptp = (ptp_t *)pgtbl;
-    u32 level;
-    for (level = L0; level <= L3; ++level) {
-        ptp_t *next_ptp;
-        pte_t *cur_entry;
-        int res = debug_get_next_ptp(cur_ptp, level, va, &next_ptp, &cur_entry, false, NULL);
-        if (res == -ENOMAPPING)
-            return -ENOMAPPING;
-
-        if (res == BLOCK_PTP || level == L3) {
-            // If a block entry is found or we're at the last level, return the PA and pte.
-        //     *pa = GET_PADDR_IN_PTE(cur_entry) + (va & ((1 << PAGE_SHIFT) - 1));
-            *pa = virt_to_phys(next_ptp) + GET_VA_OFFSET_L3(va);
-            *entry = cur_entry;
-            break;
-        }
-
-        // If a table entry is found, continue to the next level.
-        cur_ptp = next_ptp;
-    }
-
-
-
 
 //     return -ENOMAPPING;
         /* LAB 2 TODO 4 END */
@@ -493,7 +366,7 @@ static int map_range_in_pgtbl_common(void *pgtbl, vaddr_t va, paddr_t pa, size_t
         for (u32 level = L0; level < L3; level++) {
             ret = get_next_ptp(cur_ptp, level, cur_va, &next_ptp, &pte, true, rss);
             if (cur_va == 0x1002000 || cur_va == 0x1001000)
-            printk("d,p pair allocated is : %d , %p \n", level, cur_ptp);
+        //     printk("d,p pair allocated is : %d , %p \n", level, cur_ptp);
 
             if (ret < 0)
                 return ret;  // Error occurred
@@ -523,11 +396,11 @@ static int map_range_in_pgtbl_common(void *pgtbl, vaddr_t va, paddr_t pa, size_t
         // printk("%d 2 \n" , cur_entry->pte);
         // Set flags in the page table entry
         ret = set_pte_flags(cur_entry, flags, kind);
-        if (cur_va == 0x1002000)
-        {printk("%d 2 \n" , cur_entry->pte);
-        pte_t * temp_entr = NULL;
-        // debug_query_in_pgtbl(temp_pgtbl, cur_va, cur_pa, &temp_entr);
-        }
+        // if (cur_va == 0x1002000)
+        // {printk("%d 2 \n" , cur_entry->pte);
+        // pte_t * temp_entr = NULL;
+        // // debug_query_in_pgtbl(temp_pgtbl, cur_va, cur_pa, &temp_entr);
+        // }
 
         if (ret < 0)
             return ret;  // Error occurred
