@@ -223,7 +223,7 @@ static int debug_get_next_ptp(ptp_t *cur_ptp, u32 level, vaddr_t va, ptp_t **nex
         }
 
         entry = &(cur_ptp->ent[index]);
-        if ((va==0x1002050 ||va==0x1001050) && level==L3) {
+        if ((va==0x1002050 ||va==0x1001050)&& level==L3) {
                 printk("get 1002050 L3-index %d \n", index);
         }
 
@@ -264,7 +264,6 @@ static int debug_get_next_ptp(ptp_t *cur_ptp, u32 level, vaddr_t va, ptp_t **nex
 
         if (va==0x1001050 && level==L3) {
                 // ddquery_in_pgtbl( pgtbl, 0x1002050 , &pa, &pte);     
-                printk("TEST %p  \n",cur_ptp->ent[index] );  
                 printk("TEST %p  \n",cur_ptp->ent[index+1] );   
         }
         if (1)
@@ -473,23 +472,23 @@ static int map_range_in_pgtbl_common(void *pgtbl, vaddr_t va, paddr_t pa, size_t
          * Since we are adding new mappings, there is no need to flush TLBs.
          * Return 0 on success.
          */
-    BUG_ON(len % PAGE_SIZE);  // Ensure length is a multiple of page size
-    BUG_ON(va & PAGE_MASK);   // Ensure virtual address is page-aligned
-    BUG_ON(pa & PAGE_MASK);   // Ensure physical address is page-aligned
+//     BUG_ON(len % PAGE_SIZE);  // Ensure length is a multiple of page size
+//     BUG_ON(va & PAGE_MASK);   // Ensure virtual address is page-aligned
+//     BUG_ON(pa & PAGE_MASK);   // Ensure physical address is page-aligned
 
-    ptp_t *cur_ptp = (ptp_t *)pgtbl;
-    pte_t *cur_entry = NULL;
-    ptp_t *next_ptp = NULL;
-    pte_t *pte = NULL;
-    ptp_t *temp_pgtbl = (ptp_t *)pgtbl;
+
 
     int ret;
 
     for (u64 offset = 0; offset < len; offset += PAGE_SIZE) {
         vaddr_t cur_va = va + offset;
         paddr_t cur_pa = pa + offset;
-        pte = NULL;
-        
+    ptp_t *cur_ptp = (ptp_t *)pgtbl;
+    pte_t *cur_entry = NULL;
+    ptp_t *next_ptp = NULL;
+    pte_t *pte = NULL;
+    ptp_t *temp_pgtbl = (ptp_t *)pgtbl;        
+
         // Walk through the page tables
         for (u32 level = L0; level < L3; level++) {
             ret = get_next_ptp(cur_ptp, level, cur_va, &next_ptp, &pte, true, rss);
@@ -513,7 +512,7 @@ static int map_range_in_pgtbl_common(void *pgtbl, vaddr_t va, paddr_t pa, size_t
 
         // Set the properties for L3 page table entry
         u32 index = GET_L3_INDEX(cur_va);
-        printk(" %d \n", index);
+        // printk(" %d \n", index);
         cur_entry = &(cur_ptp->ent[index]);
 
         cur_entry->pte = 0;
@@ -527,7 +526,7 @@ static int map_range_in_pgtbl_common(void *pgtbl, vaddr_t va, paddr_t pa, size_t
         if (cur_va == 0x1002000)
         {printk("%d 2 \n" , cur_entry->pte);
         pte_t * temp_entr = NULL;
-        debug_query_in_pgtbl(temp_pgtbl, cur_va, cur_pa, &temp_entr);
+        // debug_query_in_pgtbl(temp_pgtbl, cur_va, cur_pa, &temp_entr);
         }
 
         if (ret < 0)
@@ -608,14 +607,16 @@ int unmap_range_in_pgtbl(void *pgtbl, vaddr_t va, size_t len, long *rss)
     BUG_ON(len % PAGE_SIZE);  // Ensure length is a multiple of page size
     BUG_ON(va & PAGE_MASK);   // Ensure virtual address is page-aligned
 
-    ptp_t *cur_ptp = (ptp_t *)pgtbl;
-    pte_t *cur_entry = NULL;
-    ptp_t *next_ptp = NULL;
-    pte_t *pte = NULL;
+
     int ret;
 
     for (u64 offset = 0; offset < len; offset += PAGE_SIZE) {
         vaddr_t cur_va = va + offset;
+    ptp_t *cur_ptp = (ptp_t *)pgtbl;
+    pte_t *cur_entry = NULL;
+    ptp_t *next_ptp = NULL;
+    pte_t *pte = NULL;
+    
         
         // Walk through the page tables
         for (u32 level = L0; level <= L3; level++) {
@@ -657,14 +658,14 @@ int mprotect_in_pgtbl(void *pgtbl, vaddr_t va, size_t len, vmr_prop_t flags)
     BUG_ON(len % PAGE_SIZE);  // Ensure length is a multiple of page size
     BUG_ON(va & PAGE_MASK);   // Ensure virtual address is page-aligned
 
-    ptp_t *cur_ptp = (ptp_t *)pgtbl;
-    pte_t *cur_entry = NULL;
-    ptp_t *next_ptp = NULL;
-    pte_t *pte = NULL;
     int ret;
 
     for (u64 offset = 0; offset < len; offset += PAGE_SIZE) {
         vaddr_t cur_va = va + offset;
+        ptp_t *cur_ptp = (ptp_t *)pgtbl;
+        pte_t *cur_entry = NULL;
+        ptp_t *next_ptp = NULL;
+        pte_t *pte = NULL;
 
         // Walk through the page tables
         for (u32 level = L0; level <= L3; level++) {

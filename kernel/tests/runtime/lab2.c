@@ -197,17 +197,17 @@ void lab2_test_page_table(void)
                         pgtbl, 0x1001000 + len, 0x1000 + len, len, flags, NULL);
                 lab_assert(ret == 0);
                 // printk("%d 2 \n", ret );
-                nr_pages = 2;
+                // nr_pages = 2;
                 for (int i = 0; i < nr_pages * 2; i++) {
                         ret = ddquery_in_pgtbl(
                                 pgtbl, 0x1001050 + i * PAGE_SIZE, &pa, &pte);
                         // debug_query_in_pgtbl(pgtbl, 0x1001050 + i * PAGE_SIZE, &pa, &pte);
                         lab_assert(ret == 0 && pa == 0x1050 + i * PAGE_SIZE);
-                        // printk("%p  %d 3 \n", pa, ret);
+                        printk("%p  %d 3 \n", pa , ret);
 
                         lab_assert(pte && pte->l3_page.is_valid
                                    && pte->l3_page.is_page);
-                        // printk("%p 4 \n", pte);
+                        printk("%p 4 \n", pte);
 
                 }
 
