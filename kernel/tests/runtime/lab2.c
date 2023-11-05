@@ -191,27 +191,40 @@ void lab2_test_page_table(void)
 
                 ret = map_range_in_pgtbl(pgtbl, 0x1001000, 0x1000, len, flags, NULL);
                 lab_assert(ret == 0);
+                // printk("%d 1 \n", ret );
+
                 ret = map_range_in_pgtbl(
                         pgtbl, 0x1001000 + len, 0x1000 + len, len, flags, NULL);
                 lab_assert(ret == 0);
-
+                // printk("%d 2 \n", ret );
+                nr_pages = 2;
                 for (int i = 0; i < nr_pages * 2; i++) {
-                        ret = query_in_pgtbl(
+                        ret = ddquery_in_pgtbl(
                                 pgtbl, 0x1001050 + i * PAGE_SIZE, &pa, &pte);
+                        // debug_query_in_pgtbl(pgtbl, 0x1001050 + i * PAGE_SIZE, &pa, &pte);
                         lab_assert(ret == 0 && pa == 0x1050 + i * PAGE_SIZE);
+                        // printk("%p  %d 3 \n", pa, ret);
+
                         lab_assert(pte && pte->l3_page.is_valid
                                    && pte->l3_page.is_page);
+                        // printk("%p 4 \n", pte);
+
                 }
 
                 ret = unmap_range_in_pgtbl(pgtbl, 0x1001000, len, NULL);
                 lab_assert(ret == 0);
+                // printk("%d 5 \n", ret );
+
                 ret = unmap_range_in_pgtbl(pgtbl, 0x1001000 + len, len, NULL);
                 lab_assert(ret == 0);
+                // printk("%d 6 \n", ret );
 
                 for (int i = 0; i < nr_pages * 2; i++) {
                         ret = query_in_pgtbl(
                                 pgtbl, 0x1001050 + i * PAGE_SIZE, &pa, &pte);
                         lab_assert(ret == -ENOMAPPING);
+                        // printk("%d 7 \n", ret );
+
                 }
 
                 free_page_table(pgtbl);
