@@ -57,7 +57,7 @@ void do_page_fault(u64 esr, u64 fault_ins_addr, int type, u64 *fix_addr)
         case DFSC_TRANS_FAULT_L3: {
                 /* LAB 2 TODO 5 BEGIN */
                 /* BLANK BEGIN */
-
+                ret = handle_trans_fault(current_thread->vmspace, fault_addr);
                 /* BLANK END */
                 /* LAB 2 TODO 5 END */
                 if (ret != 0) {

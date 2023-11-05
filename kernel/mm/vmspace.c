@@ -456,14 +456,27 @@ out_unlock:
         return ret;
 }
 
+static int compare_vaddr_with_vmr_node(const void *key, const struct rb_node *node) {
+    const vaddr_t target_addr = *(const vaddr_t *)key;
+    const struct vmregion *vmr = rb_entry(node, struct vmregion, tree_node);
+    if (target_addr < vmr->start) return -1;
+    if (target_addr >= vmr->start + vmr->size) return 1;
+    return 0; // target_addr is within the vmregion range
+}
+
 /* This function should be surrounded with the vmspace_lock. */
+//anchor1
 struct vmregion *find_vmr_for_va(struct vmspace *vmspace, vaddr_t addr)
 {
         /* LAB 2 TODO 6 BEGIN */
         /* Hint: Find the corresponding vmr for @addr in @vmspace */
-        /* BLANK BEGIN */
 
-        /* BLANK END */
+    struct rb_node *result_node = rb_search(&vmspace->vmr_tree, &addr, compare_vaddr_with_vmr_node);
+    
+
+    // Return NULL if no matching vmregion is found, otherwise return the vmregion
+    return result_node ? rb_entry(result_node, struct vmregion, tree_node) : NULL;
+
         /* LAB 2 TODO 6 END */
 }
 
