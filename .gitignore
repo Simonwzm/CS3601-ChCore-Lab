@@ -5,6 +5,7 @@
 tags
 cscope.*
 *.swp
+*.tar.gz
 
 !/**/firmware/*.bin
 !/**/firmware/*.elf
