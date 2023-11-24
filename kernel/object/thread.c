@@ -238,11 +238,48 @@ void create_root_thread(void)
 
                 /* LAB 3 TODO BEGIN */
                 /* Get offset, vaddr, filesz, memsz from image*/
+        /* Get offset from image */
+        memcpy(&offset,
+               (void *)((unsigned long)&binary_procmgr_bin_start
+                        + ROOT_PHDR_OFF + i * ROOT_PHENT_SIZE
+                        + PHDR_OFFSET_OFF),
+               sizeof(unsigned long));
+        offset = le64_to_cpu(*(u64 *)&offset);
+
+
+        /* Get vaddr from image */
+        memcpy(&vaddr,
+               (void *)((unsigned long)&binary_procmgr_bin_start
+                        + ROOT_PHDR_OFF + i * ROOT_PHENT_SIZE
+                        + PHDR_VADDR_OFF),
+               sizeof(unsigned long));
+        vaddr = le64_to_cpu(*(u64 *)&vaddr);
+
+
+        /* Get filesz from image */
+        memcpy(&filesz,
+               (void *)((unsigned long)&binary_procmgr_bin_start
+                        + ROOT_PHDR_OFF + i * ROOT_PHENT_SIZE
+                        + PHDR_FILESZ_OFF),
+               sizeof(unsigned long));
+        filesz = le64_to_cpu(*(u64 *)&filesz);
+
+        /* Get memsz from image */
+        memcpy(&memsz,
+               (void *)((unsigned long)&binary_procmgr_bin_start
+                        + ROOT_PHDR_OFF + i * ROOT_PHENT_SIZE
+                        + PHDR_MEMSZ_OF),
+               sizeof(unsigned long));
+        memsz = le64_to_cpu(*(u64 *)&memsz);
+
+
 
                 /* LAB 3 TODO END */
 
                 struct pmobject *segment_pmo;
                 /* LAB 3 TODO BEGIN */
+        cap_t segment_pmo_cap = create_pmo(memsz, PMO_DATA, root_cap_group, 0, &segment_pmo);
+        BUG_ON(segment_pmo_cap < 0);
 
                 /* LAB 3 TODO END */
 
@@ -251,11 +288,24 @@ void create_root_thread(void)
                 /* LAB 3 TODO BEGIN */
                 /* Copy elf file contents into memory*/
 
+        /* Copy the file content of the ELF segment to the allocated memory */
+        memcpy((void *)(vaddr),  /* Destination in virtual memory */
+               (void *)((unsigned long)&binary_procmgr_bin_start + offset), /* Source in the binary image */
+               filesz); /* Number of bytes to copy */
+
+        /* If memsz is greater than filesz, we need to zero out the rest */
+        if (memsz > filesz) {
+            memset((void *)(vaddr + filesz), 0, memsz - filesz);
+        }
+
                 /* LAB 3 TODO END */
                 
                 unsigned vmr_flags = 0;    
                 /* LAB 3 TODO BEGIN */
                 /* Set flags*/
+        if (flags & PHDR_FLAGS_R) vmr_flags |= VMR_READ;
+        if (flags & PHDR_FLAGS_W) vmr_flags |= VMR_WRITE;
+        if (flags & PHDR_FLAGS_X) vmr_flags |= VMR_EXEC;
 
                 /* LAB 3 TODO END */
 
