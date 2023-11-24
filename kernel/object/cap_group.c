@@ -172,6 +172,7 @@ int alloc_slot_id(struct cap_group *cap_group)
         }
         BUG_ON(empty_idx < 0 || empty_idx >= bmp_size);
 
+        printk("alloc_empty_idx: %d\n", empty_idx);
         set_bit(empty_idx, slot_table->slots_bmp);
         if (slot_table->slots_bmp[empty_idx / BITS_PER_LONG]
             == ~((unsigned long)0))
@@ -287,6 +288,8 @@ cap_t sys_create_cap_group(unsigned long cap_group_args_p)
 
         /* cap current cap_group */
         /* LAB 3 TODO BEGIN */
+        new_cap_group = obj_alloc(TYPE_CAP_GROUP, sizeof(*new_cap_group));
+
 
         /* LAB 3 TODO END */
         if (!new_cap_group) {
@@ -295,7 +298,7 @@ cap_t sys_create_cap_group(unsigned long cap_group_args_p)
         }
         /* LAB 3 TODO BEGIN */
         /* initialize cap group */
-
+        cap_group_init(new_cap_group, BASE_OBJECT_NUM, args.badge);
         /* LAB 3 TODO END */
 
         cap = cap_alloc(current_cap_group, new_cap_group);
@@ -314,6 +317,8 @@ cap_t sys_create_cap_group(unsigned long cap_group_args_p)
 
         /* 2st cap is vmspace */
         /* LAB 3 TODO BEGIN */
+
+        vmspace = obj_alloc(TYPE_VMSPACE, sizeof(*vmspace));
 
         /* LAB 3 TODO END */
 
@@ -364,22 +369,41 @@ struct cap_group *create_root_cap_group(char *name, size_t name_len)
         struct cap_group *cap_group;
         struct vmspace *vmspace;
         cap_t slot_id;
+        int ret = 0;
 
         /* LAB 3 TODO BEGIN */
+        /* Allocate memory for cap_group */
+        cap_group = obj_alloc(TYPE_CAP_GROUP, sizeof(*cap_group));
+        // if (!cap_group) {
+        //         ret = -ENOMEM;
+        //         goto out_fail;
+	// }
+        printk("finish cap_group_alloc \n");
+
 
         /* LAB 3 TODO END */
         BUG_ON(!cap_group);
 
         /* LAB 3 TODO BEGIN */
         /* initialize cap group, use ROOT_CAP_GROUP_BADGE */
+        ret = cap_group_init(cap_group, BASE_OBJECT_NUM, ROOT_CAP_GROUP_BADGE);
+        printk("finish cap_group_init, %d \n", ret);
 
         /* LAB 3 TODO END */
         slot_id = cap_alloc(cap_group, cap_group);
-
+        printk("finish cap_group cap_alloc \n");
         BUG_ON(slot_id != CAP_GROUP_OBJ_ID);
 
         /* LAB 3 TODO BEGIN */
+        /* Allocate memory for vmspace */
+        /* f**k me, I forgot a `*` and it cost a night!! */
+        vmspace = obj_alloc(TYPE_VMSPACE, sizeof(*vmspace));
+        printk("finish vmspace alloc \n");
 
+        // if (!vmspace) {
+        //         ret = -ENOMEM;
+        //         goto out_fail;
+        // }
         /* LAB 3 TODO END */
         BUG_ON(!vmspace);
 
@@ -387,7 +411,10 @@ struct cap_group *create_root_cap_group(char *name, size_t name_len)
         vmspace_init(vmspace, ROOT_PROCESS_PCID);
 
         /* LAB 3 TODO BEGIN */
-        
+        /* allocate slot for vmspace */
+        slot_id = cap_alloc(cap_group, vmspace);        
+        printk("finish vmspace_cap_group_init \n");
+
         /* LAB 3 TODO END */
 
         BUG_ON(slot_id != VMSPACE_OBJ_ID);
@@ -399,5 +426,8 @@ struct cap_group *create_root_cap_group(char *name, size_t name_len)
         memcpy(cap_group->cap_group_name, name, name_len);
 
         root_cap_group = cap_group;
+        printk("Finish root_process_init \n");
         return cap_group;
+// out_fail:
+//         return ret;
 }

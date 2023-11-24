@@ -107,6 +107,7 @@ static inline struct object_slot *get_slot(struct cap_group *cap_group,
 static inline void install_slot(struct cap_group *cap_group, cap_t slot_id,
 				struct object_slot *slot)
 {
+	printk("%d", get_bit(slot_id, cap_group->slot_table.slots_bmp));
 	BUG_ON(!get_bit(slot_id, cap_group->slot_table.slots_bmp));
 	cap_group->slot_table.slots[slot_id] = slot;
 }

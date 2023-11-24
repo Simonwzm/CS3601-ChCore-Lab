@@ -96,6 +96,7 @@ cap_t cap_alloc(struct cap_group *cap_group, void *obj)
 
         write_lock(&slot_table->table_guard);
         slot_id = alloc_slot_id(cap_group);
+        printk("slot_id: %d\n", slot_id);
         if (slot_id < 0) {
                 r = -ENOMEM;
                 goto out_unlock_table;
