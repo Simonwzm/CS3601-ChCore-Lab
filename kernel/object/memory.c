@@ -42,16 +42,21 @@ cap_t create_pmo(size_t size, pmo_type_t type, struct cap_group *cap_group,
         pmo = obj_alloc(TYPE_PMO, sizeof(*pmo));
         if (!pmo) {
                 r = -ENOMEM;
+                printk("Fail in !pmo branch \n");
                 goto out_fail;
         }
 
         r = pmo_init(pmo, type, size, paddr);
-        if (r)
+        if (r) {
+
+                printk("Fail in pmo_init branch \n");
                 goto out_free_obj;
+        }
 
         cap = cap_alloc(cap_group, pmo);
         if (cap < 0) {
                 r = cap;
+                printk("Fail in cap_alloc branch \n");
                 goto out_pmo_deinit;
         }
 
