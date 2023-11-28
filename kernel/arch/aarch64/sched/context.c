@@ -15,6 +15,7 @@
 #include <arch/machine/registers.h>
 #include <arch/machine/smp.h>
 #include <mm/kmalloc.h>
+#include <common/kprint.h>
 
 void init_thread_ctx(struct thread *thread, vaddr_t stack, vaddr_t func,
                      u32 prio, u32 type, s32 aff)
@@ -23,8 +24,11 @@ void init_thread_ctx(struct thread *thread, vaddr_t stack, vaddr_t func,
 
         /* LAB 3 TODO BEGIN */
         /* SP_EL0, ELR_EL1, SPSR_EL1*/
+        printk("init_thread_ctx: stack: %lx, func: %lx, prio: %d, type: %d, aff: %d\n", stack, func, prio, type, aff);
+
         thread->thread_ctx->ec.reg[SP_EL0] = stack;
         thread->thread_ctx->ec.reg[ELR_EL1] = func;
+
         thread->thread_ctx->ec.reg[SPSR_EL1] = SPSR_EL1_EL0t;
         /* LAB 3 TODO END */
 

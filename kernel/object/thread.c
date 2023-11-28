@@ -240,41 +240,41 @@ void create_root_thread(void)
                 /* LAB 3 TODO BEGIN */
                 /* Get offset, vaddr, filesz, memsz from image*/
         /* Get offset from image */
-        memcpy(&offset,
+        memcpy(data,
                (void *)((unsigned long)&binary_procmgr_bin_start
                         + ROOT_PHDR_OFF + i * ROOT_PHENT_SIZE
                         + PHDR_OFFSET_OFF),
                sizeof(unsigned long));
-        offset = le64_to_cpu(*(u64 *)&offset);
+        offset = le64_to_cpu(*(u64 *)data);
         printk("offset: %lx\n", offset);
 
 
         /* Get vaddr from image */
-        memcpy(&vaddr,
+        memcpy(data,
                (void *)((unsigned long)&binary_procmgr_bin_start
                         + ROOT_PHDR_OFF + i * ROOT_PHENT_SIZE
                         + PHDR_VADDR_OFF),
                sizeof(unsigned long));
-        vaddr = le64_to_cpu(*(u64 *)&vaddr);
+        vaddr = le64_to_cpu(*(u64 *)data);
         printk("vaddr: %lx\n", vaddr);
 
 
         /* Get filesz from image */
-        memcpy(&filesz,
+        memcpy(data,
                (void *)((unsigned long)&binary_procmgr_bin_start
                         + ROOT_PHDR_OFF + i * ROOT_PHENT_SIZE
                         + PHDR_FILESZ_OFF),
                sizeof(unsigned long));
-        filesz = le64_to_cpu(*(u64 *)&filesz);
+        filesz = le64_to_cpu(*(u64 *)data);
         printk("filesz: %lx\n", filesz);
 
         /* Get memsz from image */
-        memcpy(&memsz,
+        memcpy(data,
                (void *)((unsigned long)&binary_procmgr_bin_start
                         + ROOT_PHDR_OFF + i * ROOT_PHENT_SIZE
-                        + PHDR_MEMSZ_OF),
+                        + PHDR_MEMSZ_OFF),
                sizeof(unsigned long));
-        memsz = le64_to_cpu(*(u64 *)&memsz);
+        memsz = le64_to_cpu(*(u64 *)data);
         printk("memsz: %lx\n", memsz);
 
 
@@ -283,7 +283,7 @@ void create_root_thread(void)
 
                 struct pmobject *segment_pmo;
                 /* LAB 3 TODO BEGIN */
-        cap_t segment_pmo_cap = create_pmo(memsz, PMO_DATA, root_cap_group, 0, &segment_pmo);
+        cap_t segment_pmo_cap = create_pmo(ROUND_UP(memsz, PAGE_SIZE), PMO_DATA, root_cap_group, 0, &segment_pmo);
 
 
 
@@ -298,16 +298,40 @@ void create_root_thread(void)
                 /* Copy elf file contents into memory*/
 
         /* Copy the file content of the ELF segment to the allocated memory */
-        printk("start copy to vaddr: %lx\n", vaddr);
-        memcpy((void *)(vaddr + phys_to_virt(segment_pmo->start)),  /* Destination in virtual memory */
-               (void *)((unsigned long)&binary_procmgr_bin_start + i*offset), /* Source in the binary image */
-               filesz); /* Number of bytes to copy */
-        printk("filesz copy to vaddr: %lx\n", vaddr);
 
-        /* If memsz is greater than filesz, we need to zero out the rest */
-        if (memsz > filesz) {
-            memset((void *)(vaddr + filesz), 0, memsz - filesz);
-        }
+
+
+//     vaddr_t vaddr_start = ROUND_DOWN(vaddr, PAGE_SIZE);
+//     vaddr_t vaddr_end = ROUND_UP(vaddr + memsz, PAGE_SIZE);
+//     size_t seg_map_sz = vaddr_end - vaddr_start;
+//     char *pmo_start = (char *)phys_to_virt(segment_pmo->start) + (vaddr - vaddr_start);
+//     char *seg_start = (char *)((unsigned long)&binary_procmgr_bin_start + offset);
+//     for (size_t idx = 0; idx < filesz; idx++) {
+//         pmo_start[idx] = seg_start[idx];
+//     }
+
+
+
+
+
+
+
+
+        printk("start copy to vaddr: %lx\n", phys_to_virt(segment_pmo->start));
+        memset((void *)( phys_to_virt(segment_pmo->start)), 0, segment_pmo->size);
+        memcpy((void *)( phys_to_virt(segment_pmo->start)),  /* Destination in virtual memory */
+               (void *)((unsigned long)&binary_procmgr_bin_start + ROOT_BIN_HDR_SIZE +
+               offset), /* Source in the binary image */
+               filesz); /* Number of bytes to copy */
+        // printk("filesz copy to vaddr: %lx\n", vaddr);
+
+
+
+
+
+
+
+
 
 
                 /* LAB 3 TODO END */
@@ -318,11 +342,15 @@ void create_root_thread(void)
         // if (flags & PHDR_FLAGS_R) vmr_flags |= VMR_READ;
         // if (flags & PHDR_FLAGS_W) vmr_flags |= VMR_WRITE;
         // if (flags & PHDR_FLAGS_X) vmr_flags |= VMR_EXEC;
-        #define PF_X = PHDR_FLAGS_X
-        #define PF_W = PHDR_FLAGS_W
-        #define PF_R = PHDR_FLAGS_R
+        // #define PF_X = PHDR_FLAGS_X
+        // #define PF_W = PHDR_FLAGS_W
+        // #define PF_R = PHDR_FLAGS_R
 
-        vmr_flags = (((flags)&= (1 << 0) ? (1 << 2) : 0) | ((flags)&= (1 << 1) ? (1 << 1) : 0) | ((flags)&= (1 << 2) ? (1 << 0) : 0));
+        // vmr_flags = (((flags)&= (1 << 0) ? (1 << 2) : 0) | ((flags)&= (1 << 1) ? (1 << 1) : 0) | ((flags)&= (1 << 2) ? (1 << 0) : 0));
+        if (flags & PHDR_FLAGS_R) vmr_flags |= VMR_READ;
+        if (flags & PHDR_FLAGS_W) vmr_flags |= VMR_WRITE;
+        if (flags & PHDR_FLAGS_X) vmr_flags |= VMR_EXEC;
+
 
         printk("vmr_flags: %x\n", vmr_flags);
 

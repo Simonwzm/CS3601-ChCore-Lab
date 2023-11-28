@@ -120,7 +120,7 @@ void main(paddr_t boot_flag, void *info)
 
 	/* Leave the scheduler to do its job */
 	sched();
-
+	printk("[ChCore] sched returned\n");
 	/* Context switch to the picked thread */
 	eret_to_thread(switch_context());
 

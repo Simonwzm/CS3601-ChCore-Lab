@@ -54,15 +54,17 @@ u64 handle_entry_c(int type, u64 esr, u64 address)
 
 	kdebug("Exception type: %d, ESR: 0x%lx, Fault address: 0x%lx, "
 	       "EC 0b%b\n", type, esr, address, esr_ec);
-
+	// kinfo("test here \n");
 	/* Currently, ChCore only handles a part of IRQs */
 	if (type < SYNC_EL0_64) {
-
+		// kinfo("test if \nn");
 		if (esr_ec != ESR_EL1_EC_DABT_CEL) {
 			kinfo("%s: irq type is %d\n", __func__, type);
 			BUG_ON(1);
+			// kinfo("test if if \n");
 		}
 	}
+	// kinfo("test not if , esr_ec: %d \n", esr_ec);
 
 	u64 fix_addr = 0;
 	/* Dispatch exception according to EC */
@@ -71,6 +73,7 @@ u64 handle_entry_c(int type, u64 esr, u64 address)
 		kdebug("Unknown\n");
 		break;
 	case ESR_EL1_EC_WFI_WFE:
+		kinfo("case 2 \n");
 		kdebug("Trapped WFI or WFE instruction execution\n");
 		return address;
 	case ESR_EL1_EC_ENFP:
