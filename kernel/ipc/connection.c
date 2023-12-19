@@ -109,9 +109,11 @@ static int register_server(struct thread *server, unsigned long ipc_routine,
         /* Complete the config structure, replace xxx with actual values */
         /* Record the ipc_routine_entry  */
         // config->declared_ipc_routine_entry = xxx;
+        config->declared_ipc_routine_entry = ipc_routine;
 
         /* Record the registration cb thread */
         // config->register_cb_thread = xxx;
+        config->register_cb_thread = register_cb_thread;
         /* LAB 4 TODO END (exercise 7) */
 
         register_cb_config = kmalloc(sizeof(*register_cb_config));
@@ -255,6 +257,10 @@ static int create_connection(struct thread *client, struct thread *server,
         // conn->shm.shm_cap_in_client = xxx;
         // conn->shm.shm_cap_in_server = xxx;
         /* LAB 4 TODO END (exercise 7) */
+        conn->shm.client_shm_uaddr = shm_addr_client;
+        conn->shm.shm_size = shm_size;
+        conn->shm.shm_cap_in_client = shm_cap_client;
+        conn->shm.shm_cap_in_server = shm_cap_server;
 
         lock_init(&conn->ownership);
         /* Initialize the connection (end) */
@@ -383,12 +389,19 @@ static void ipc_thread_migrate_to_server(struct ipc_connection *conn,
         /* Note: see how stack address and ip are get in sys_ipc_register_cb_return */
         // arch_set_thread_stack(target, xxx);
         // arch_set_thread_next_ip(target, xxx);
+        arch_set_thread_stack(target, handler_config->ipc_routine_stack);
+        arch_set_thread_next_ip(target, handler_config->ipc_routine_entry);
 
         /* see server_handler type in uapi/ipc.h */
         // arch_set_thread_arg0(target, xxx);
         // arch_set_thread_arg1(target, xxx);
         // arch_set_thread_arg2(target, xxx);
         // arch_set_thread_arg3(target, xxx);
+        // why
+        arch_set_thread_arg0(target, shm_addr);
+        arch_set_thread_arg1(target, shm_size);
+        arch_set_thread_arg2(target, cap_num);
+        arch_set_thread_arg3(target, conn->client_badge);
         /* LAB 4 TODO END (exercise 7) */
 
         set_thread_arch_spec_state_ipc(target);
@@ -524,12 +537,16 @@ cap_t sys_register_client(cap_t server_cap, unsigned long shm_config_ptr)
         /* Note: see how stack address and ip are get in sys_register_server */
         // arch_set_thread_stack(register_cb_thread, xxx);
         // arch_set_thread_next_ip(register_cb_thread, xxx);
-
+        arch_set_thread_stack(register_cb_thread, register_cb_config->register_cb_stack);
+        arch_set_thread_next_ip(register_cb_thread, register_cb_config->register_cb_entry);
+        
         /*
          * Note: see the parameter of register_cb function defined
          * in user/chcore-libc/musl-libc/src/chcore-port/ipc.c
          */
         // arch_set_thread_arg0(register_cb_thread, xxx);
+        // why?
+        arch_set_thread_arg0(register_cb_thread, server_config->declared_ipc_routine_entry);
         /* LAB 4 TODO END (exercise 7) */
 
         obj_put(server);
@@ -892,6 +909,7 @@ int sys_ipc_register_cb_return(cap_t server_handler_thread_cap,
         /* LAB 4 TODO BEGIN (exercise 7) */
         /* Complete the server_shm_uaddr field of shm, replace xxx with the actual value */
         // conn->shm.server_shm_uaddr = xxx;
+        conn->shm.server_shm_uaddr = server_shm_addr;
         /* LAB 4 TODO END (exercise 7) */
 
         conn->server_handler_thread = ipc_server_handler_thread;

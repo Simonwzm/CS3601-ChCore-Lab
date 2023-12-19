@@ -50,11 +50,15 @@ int __rr_sched_enqueue(struct thread *thread, int cpuid)
         }
         thread->thread_ctx->cpuid = cpuid;
         thread->thread_ctx->state = TS_READY;
-        obj_ref(thread);
+        obj_ref(thread); // add reference to thread by 1
 
         /* LAB 4 TODO BEGIN (exercise 2) */
         /* Insert thread into the ready queue of cpuid and update queue length */
         /* Note: you should add two lines of code. */
+        list_append(&thread->ready_queue_node, &rr_ready_queue_meta[cpuid].queue_head);
+
+        /* Increment the queue length since we just added a thread. */
+        rr_ready_queue_meta[cpuid].queue_len++;
 
         /* LAB 4 TODO END (exercise 2) */
 
@@ -139,9 +143,13 @@ int __rr_sched_dequeue(struct thread *thread)
                 return -EINVAL;
         }
         /* LAB 4 TODO BEGIN (exercise 3) */
-        /* Delete thread from the ready queue and upate the queue length */
+        /* Delete thread from the ready queue and update the queue length */
         /* Note: you should add two lines of code. */
+        list_del(&thread->ready_queue_node);
 
+        /* Decrement the queue length of the CPU this thread was enqueued to. */
+        rr_ready_queue_meta[thread->thread_ctx->cpuid].queue_len--;
+    
         /* LAB 4 TODO END (exercise 3) */
         thread->thread_ctx->state = TS_INTER;
         obj_put(thread);
@@ -260,7 +268,7 @@ int rr_sched(void)
                         }
                         /* LAB 4 TODO BEGIN (exercise 6) */
                         /* Refill budget for current running thread (old) */
-
+                         old->thread_ctx->sc->budget = DEFAULT_BUDGET;
                         /* LAB 4 TODO END (exercise 6) */
 
                         old->thread_ctx->state = TS_INTER;
@@ -268,6 +276,7 @@ int rr_sched(void)
                         /* LAB 4 TODO BEGIN (exercise 4) */
                         /* Enqueue current running thread */
                         /* Note: you should just add a function call (one line of code) */
+                        rr_sched_enqueue(old);
 
                         /* LAB 4 TODO END (exercise 4) */
                         break;
@@ -291,6 +300,17 @@ int rr_sched_init(void)
 {
         /* LAB 4 TODO BEGIN (exercise 1) */
         /* Initial the ready queues (rr_ready_queue_meta) for each CPU core */
+        for (int i = 0; i < PLAT_CPU_NUM; ++i) {
+                /* LAB 4 TODO BEGIN (exercise 1) */
+                /* Initialize list head */
+                init_list_head(&rr_ready_queue_meta[i].queue_head);
+                
+                /* Set the length of the queue to 0 */
+                rr_ready_queue_meta[i].queue_len = 0;
+                
+                /* Initialize the lock for the queue */
+                lock_init(&rr_ready_queue_meta[i].queue_lock);
+        }
 
         /* LAB 4 TODO END (exercise 1) */
 

@@ -15,6 +15,7 @@
 #include <sched/fpu.h>
 #include <mm/kmalloc.h>
 #include <irq/ipi.h>
+#include <common/kprint.h>
 #include <common/util.h>
 
 /* Scheduler global data */
@@ -129,8 +130,17 @@ struct thread *find_runnable_thread(struct list_head *thread_list)
          * (thread->thread_ctx->kernel_stack_state == KS_FREE
          * || thread == current_thread))
          */
-
+        for_each_in_list(thread, struct thread, ready_queue_node, thread_list) {
+                /* Check if the thread is suspended or not */
+                if (!thread->thread_ctx->is_suspended &&
+                (thread->thread_ctx->kernel_stack_state == KS_FREE ||
+                thread == current_thread)) {
+                /* Found a runnable thread, so break the loop */
+                break;
+                }
+        }
         /* LAB 4 TODO END (exercise 3) */
+
         return thread;
 }
 
@@ -466,7 +476,7 @@ void sys_yield(void)
         /* LAB 4 TODO BEGIN (exercise 4) */
         /* Trigger sched */
         /* Note: you should just add a function call (one line of code) */
-
+        cur_sched_ops->sched();
         /* LAB 4 TODO END (exercise 4) */
         eret_to_thread(switch_context());
 }

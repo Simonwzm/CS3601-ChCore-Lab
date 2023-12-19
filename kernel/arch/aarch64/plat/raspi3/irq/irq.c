@@ -167,6 +167,9 @@ void plat_handle_irq(void)
 	switch (irq) {
 	/* LAB 4 TODO BEGIN (exercise 6) */
 	/* Call handle_timer_irq and return if irq equals INT_SRC_TIMER1 (physical timer) */
+	case INT_SRC_TIMER1:
+		handle_timer_irq();
+		return;
 
 	/* LAB 4 TODO END (exercise 6) */
 	default:

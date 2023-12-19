@@ -505,6 +505,7 @@ void *thread_routine2(void *arg)
         printf("Hello, I am thread 3. I'm spinning.\n");
 
         while (1) {
+
         }
         return 0;
 }
@@ -521,7 +522,9 @@ void test_sched(void)
         pthread_join(tid, NULL);
 
         printf("Thread 1 creates a spinning thread!\n");
-        pthread_create(&tid, NULL, thread_routine2, NULL);
+        int res = pthread_create(&tid, NULL, thread_routine2, NULL);
+        printf("%d \n" , res);
+        printf("waht?\n");
         usys_yield();
         printf("Thread 1 successfully regains the control!\n");
         printf("Preemptive Schedluing Test Done!\n");
